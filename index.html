@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ANU Group — Live MIS Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --ink: #16213B;
+            --slate: #5B6478;
+            --teal: #0E7C6B;
+            --tealDeep: #0A5A4D;
+            --amber: #B8730B;
+            --rose: #B23B3B;
+            --card: #FFFFFF;
+            --bg: #F3F4F7;
+            --line: #E4E6EC;
+            --paper: #FBFAF7;
+            --warnbg: #FDF3E7;
+            --warnborder: #E9C089;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: 'Inter', sans-serif;
+        }
+
+        #app {
+            padding: 28px 28px 60px;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .eyebrow {
+            font-size: 11.5px;
+            letter-spacing: 0.1em;
+            color: var(--teal);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 27px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .upload-card {
+            background: var(--ink);
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin: 18px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .upload-left {
+            color: #fff;
+        }
+
+        .upload-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .file-status {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: #9AA3B8;
+            margin-top: 6px;
+        }
+
+        .file-status.ok {
+            color: #7FD9C4;
+        }
+
+        .file-status.err {
+            color: #FF9B7A;
+        }
+
+        .upload-btn {
+            background: var(--teal);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 7px;
+            font-family: 'Inter';
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .upload-btn:hover {
+            background: var(--tealDeep);
+        }
+
+        .tab-label {
+            font-size: 11px;
+            color: var(--slate);
+            margin: 16px 0 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 8px 16px 7px;
+            border-radius: 6px 6px 0 0;
+            border: 1px solid var(--line);
+            background: var(--paper);
+            color: var(--slate);
+            cursor: pointer;
+            position: relative;
+            top: 0;
+            transition: all .15s ease;
+        }
+
+        .tab.active {
+            border: 1px solid var(--ink);
+            background: var(--ink);
+            color: #fff;
+            top: 1px;
+        }
+
+        .tab.unit-tab {
+            border-radius: 8px;
+            top: 0 !important;
+            padding: 9px 18px;
+        }
+
+        .tab.master-tab {
+            background: var(--tealDeep);
+            border-color: var(--tealDeep);
+            color: #fff;
+        }
+
+        .tab.master-tab.active {
+            background: var(--ink);
+            border-color: var(--ink);
+        }
+
+        .cmp-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .cmp-table th {
+            font-family: 'Inter';
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate);
+            text-align: right;
+            padding: 8px 10px;
+            border-bottom: 2px solid var(--ink);
+            font-weight: 600;
+        }
+
+        .cmp-table th:first-child {
+            text-align: left;
+        }
+
+        .cmp-table td {
+            font-family: 'IBM Plex Mono', monospace;
+            text-align: right;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink);
+        }
+
+        .cmp-table td:first-child {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            text-align: left;
+            color: var(--ink);
+        }
+
+        .cmp-table tr:hover td {
+            background: var(--paper);
+        }
+
+        .cmp-best {
+            color: var(--teal);
+            font-weight: 700;
+        }
+
+        .cmp-worst {
+            color: var(--rose);
+        }
+
+        .source-tag {
+            font-size: 10px;
+            color: var(--slate);
+            font-family: 'IBM Plex Mono', monospace;
+            margin-top: 2px;
+        }
+
+        .warn-card {
+            background: var(--warnbg);
+            border: 1px solid var(--warnborder);
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin: 16px 0;
+            cursor: pointer;
+        }
+
+        .warn-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: #7A4B0A;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .warn-list {
+            margin: 10px 0 0;
+            padding-left: 20px;
+            font-size: 12.8px;
+            color: #5C4319;
+            line-height: 1.65;
+        }
+
+        .warn-list b {
+            color: #3F2E10;
+        }
+
+        .kpi-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin: 18px 0;
+        }
+
+        .kpi-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 16px 18px;
+            position: relative;
+            overflow: hidden;
+            flex: 1;
+            min-width: 175px;
+        }
+
+        .kpi-accent {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+        }
+
+        .kpi-label {
+            font-size: 10.5px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--slate);
+            font-weight: 600;
+            margin-bottom: 7px;
+        }
+
+        .kpi-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 23px;
+            font-weight: 600;
+            color: var(--ink);
+            line-height: 1.1;
+        }
+
+        .kpi-sub {
+            font-size: 11.5px;
+            color: var(--slate);
+            margin-top: 5px;
+        }
+
+        .kpi-delta {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            margin-top: 7px;
+            font-weight: 600;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .grid2b {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width:900px) {
+
+            .grid2,
+            .grid2b {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 16px 20px 12px;
+        }
+
+        .card-head-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .card-subtitle {
+            font-size: 11.5px;
+            color: var(--slate);
+            margin-top: 2px;
+        }
+
+        .expand-btn {
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            cursor: pointer;
+            color: var(--slate);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .15s ease;
+        }
+
+        .expand-btn:hover {
+            background: var(--teal);
+            border-color: var(--teal);
+            color: #fff;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(22, 33, 59, 0.72);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 24px;
+        }
+
+        .modal-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 24px 28px 20px;
+            max-width: 96vw;
+            max-height: 92vh;
+            width: 1000px;
+            overflow: auto;
+            position: relative;
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+
+        .modal-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .modal-close {
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--slate);
+            flex-shrink: 0;
+        }
+
+        .modal-close:hover {
+            background: var(--rose);
+            border-color: var(--rose);
+            color: #fff;
+        }
+
+        .modal-body svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .help-btn {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--ink);
+            color: #fff;
+            border: none;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 19px;
+            font-weight: 700;
+            cursor: pointer;
+            z-index: 900;
+            box-shadow: 0 3px 10px rgba(22, 33, 59, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .15s ease;
+        }
+
+        .help-btn:hover {
+            background: var(--teal);
+            transform: scale(1.06);
+        }
+
+        .manual-card {
+            max-width: 840px;
+        }
+
+        .manual-body {
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            color: var(--ink);
+            line-height: 1.65;
+        }
+
+        .manual-body h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            margin: 22px 0 8px;
+            color: var(--ink);
+            border-bottom: 2px solid var(--line);
+            padding-bottom: 6px;
+        }
+
+        .manual-body h3:first-child {
+            margin-top: 0;
+        }
+
+        .manual-body p {
+            margin: 6px 0;
+        }
+
+        .manual-body code {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 12.5px;
+            color: var(--tealDeep);
+        }
+
+        .manual-body ul {
+            margin: 6px 0;
+            padding-left: 20px;
+        }
+
+        .manual-body li {
+            margin: 4px 0;
+        }
+
+        .manual-body .formula-box {
+            background: var(--paper);
+            border-left: 3px solid var(--teal);
+            border-radius: 0 6px 6px 0;
+            padding: 10px 14px;
+            margin: 8px 0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            color: var(--tealDeep);
+        }
+
+        .manual-body .note {
+            background: var(--warnbg);
+            border: 1px solid var(--warnborder);
+            border-radius: 6px;
+            padding: 9px 12px;
+            margin: 8px 0;
+            font-size: 12.5px;
+            color: #5C4319;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 10px;
+            margin-top: 8px;
+        }
+
+        .legend-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .legend-val {
+            margin-left: auto;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        .waterfall-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+        }
+
+        .waterfall-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .waterfall-sub {
+            font-size: 12px;
+            color: var(--slate);
+            margin-bottom: 14px;
+        }
+
+        .waterfall-row {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            flex-wrap: wrap;
+        }
+
+        .wf-node {
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all .15s ease;
+            min-width: 110px;
+        }
+
+        .wf-node:hover {
+            border-color: var(--teal);
+            box-shadow: 0 2px 8px rgba(14, 124, 107, 0.12);
+        }
+
+        .wf-node.rev {
+            border-color: var(--teal);
+            background: #EAF6F3;
+        }
+
+        .wf-node.profit {
+            border-color: var(--ink);
+            background: var(--ink);
+        }
+
+        .wf-node.profit .wf-label,
+        .wf-node.profit .wf-val {
+            color: #fff;
+        }
+
+        .wf-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .wf-val {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .wf-op {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 16px;
+            color: var(--slate);
+            padding: 0 6px;
+            font-weight: 700;
+        }
+
+        .wf-flag {
+            font-size: 9.5px;
+            color: var(--rose);
+            font-weight: 700;
+            margin-top: 3px;
+        }
+
+        .detail-heading {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16.5px;
+            font-weight: 700;
+            margin: 26px 0 4px;
+        }
+
+        .detail-sub {
+            font-size: 12px;
+            color: var(--slate);
+            margin-bottom: 12px;
+        }
+
+        .section-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .section-head {
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-head:hover {
+            background: var(--paper);
+        }
+
+        .section-head-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .section-head-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .section-subtotal {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .section-pct {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--slate);
+        }
+
+        .chevron {
+            font-size: 11px;
+            color: var(--slate);
+            transition: transform .15s ease;
+        }
+
+        .chevron.open {
+            transform: rotate(90deg);
+        }
+
+        .section-body {
+            padding: 0 20px 16px;
+            display: none;
+            border-top: 1px solid var(--line);
+        }
+
+        .section-body.open {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-size: 12.5px;
+        }
+
+        th {
+            font-family: 'Inter';
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate);
+            text-align: right;
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--line);
+            font-weight: 600;
+        }
+
+        th:first-child {
+            text-align: left;
+        }
+
+        td {
+            font-family: 'IBM Plex Mono', monospace;
+            text-align: right;
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink);
+        }
+
+        td:first-child {
+            font-family: 'Inter';
+            text-align: left;
+            color: var(--ink);
+        }
+
+        .blank {
+            color: #C7CBD3;
+            font-style: italic;
+        }
+
+        .formula-line {
+            margin-top: 10px;
+            padding: 9px 12px;
+            background: var(--paper);
+            border-radius: 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            color: var(--slate);
+            line-height: 1.6;
+        }
+
+        .formula-line b {
+            color: var(--ink);
+        }
+
+        .flows-into {
+            margin-top: 8px;
+            font-size: 11.5px;
+            color: var(--teal);
+            font-family: 'Inter';
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .flows-into:hover {
+            text-decoration: underline;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 11.5px;
+            color: var(--slate);
+            text-align: center;
+        }
+
+        .empty-state {
+            background: var(--card);
+            border: 1px dashed var(--line);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--slate);
+            font-size: 13px;
+        }
+
+        @media (max-width:640px) {
+            .waterfall-row {
+                flex-direction: column;
+            }
+
+            .wf-op {
+                transform: rotate(90deg);
+                padding: 4px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app"></div>
+
+    <script>
+        // ---------------------------------------------------------------------------
+        // CONSTANTS
+        // ---------------------------------------------------------------------------
+        const MONTH_ABBR = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+        const FISCAL_ORDER = ["APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC", "JAN", "FEB", "MAR"];
+        const SECTION_NAMES = { 1: "Revenue", 2: "Cost of Materials Consumed", 3: "Changes in Inventories", 4: "Manufacturing Expenses", 5: "Employee Benefits Expenses", 6: "Finance Cost", 7: "Depreciation", 8: "Other Expenses" };
+        const C = { ink: "#16213B", slate: "#5B6478", teal: "#0E7C6B", tealDeep: "#0A5A4D", rose: "#B23B3B", amber: "#B8730B", line: "#E4E6EC" };
+        const PALETTE = ["#0E7C6B", "#B8730B", "#3E5C8A", "#B23B3B", "#7A6FA8", "#5B6478"];
+
+        let UNITS = {}; let UNIT_ORDER = [];
+        let CHART_CACHE = {};
+        const MASTER_KEY = '__MASTER_COMPARISON__';
+        let state = {
+            unit: null, month: null, compareMonth: null, expanded: {}, warnOpen: true, modalOpen: null, manualOpen: false,
+            fileStatus: { type: "info", text: "Upload one or more unit workbooks to build their dashboards." }
+        };
+
+        function openChartModal(key) { state.modalOpen = key; render(); }
+        function closeChartModal() { state.modalOpen = null; render(); }
+        function openManual() { state.manualOpen = true; render(); }
+        function closeManual() { state.manualOpen = false; render(); }
+        function cardHead(title, subtitle, key) {
+            let h = '<div class="card-head-row"><div><div class="card-title">' + title + '</div>' + (subtitle ? '<div class="card-subtitle">' + subtitle + '</div>' : '') + '</div>';
+            h += '<button class="expand-btn" onclick="openChartModal(\'' + key + '\')" title="Expand">⤢</button></div>';
+            return h;
+        }
+
+        // ---------------------------------------------------------------------------
+        // USER MANUAL — static content, same for every unit / month / upload
+        // ---------------------------------------------------------------------------
+        const MANUAL_HTML = `
+<h3>1. How this dashboard reads your Excel</h3>
+<p>When you upload a workbook, the dashboard looks for a sheet whose name contains "month" (case-insensitive) — this covers tabs literally called <code>MONTHLY</code>, but also variants like <code>MONTHALY</code> or <code>MONTHLY REPORT</code>. If a unit's workbook has no such consolidated tab, the dashboard instead reads each individual month sheet (e.g. <code>APR-2026</code>, <code>MAY-2026</code>) separately and stitches them together into the same view. Either way, every section is identified by its <b>Note No.</b> column (1 through 8), the same numbering your accountant's format already uses:</p>
+<ul>
+<li>1 — Revenue</li>
+<li>2 — Cost of Materials Consumed</li>
+<li>3 — Changes in Inventories (memo only)</li>
+<li>4 — Manufacturing Expenses</li>
+<li>5 — Employee Benefits Expenses</li>
+<li>6 — Finance Cost</li>
+<li>7 — Depreciation</li>
+<li>8 — Other Expenses</li>
+</ul>
+<p>Nothing is uploaded anywhere — the file is parsed entirely inside your browser.</p>
+
+<h3>2. Revenue</h3>
+<p>Total Revenue is the sum of every line item under Section 1, typically:</p>
+<div class="formula-box">Revenue from Operations + Job Charges Received + Other Income = Total Revenue</div>
+<p>Whatever line items your sheet actually lists under Revenue are added together — the dashboard doesn't assume fixed line names, so this adapts automatically if a unit's sheet is phrased slightly differently (e.g. "Revenue from Operations (Gross)").</p>
+
+<h3>3. Cost of Materials Consumed (COGS)</h3>
+<p>This is the standard cost-of-goods-consumed formula, reconstructed from Section 2's line items:</p>
+<div class="formula-box">Opening Stock + Material Purchased + Consumables + Freight Inwards<br>− Discount on Purchase − Exchange Fluctuations − Closing Stock<br>= Cost of Materials Consumed</div>
+<p>In plain terms: what you started with, plus what you bought and paid to bring in, minus discounts and currency gains, minus what's left unsold at month-end — leaves what was actually consumed.</p>
+
+<h3>4. Changes in Inventories</h3>
+<p>Section 3 repeats Opening/Closing Stock as a memo line, following standard P&L presentation. This dashboard does <b>not</b> add it separately into Total Expenses — it's already accounted for inside Cost of Materials Consumed above, so counting it again would double-count stock movement.</p>
+
+<h3>5. Manufacturing / Employee / Finance / Depreciation / Other Expenses</h3>
+<p>Each of these is simply the sum of whatever line items your sheet lists under that section. For example, Employee Benefits Expenses = Salaries & Wages + EPF/ESIC + Staff Welfare + Overtime + Bonus + Incentives + any other line your sheet includes under that Note No.</p>
+
+<h3>6. Total Expenses</h3>
+<div class="formula-box">Cost of Materials + Manufacturing + Employee Benefits + Finance Cost + Depreciation + Other Expenses = Total Expenses</div>
+<p>The dashboard prefers your sheet's own "Total Expenses" cell when it's filled in. If that cell is blank for a given month, it calculates the total itself by adding up the six categories above — so a figure is always shown, even for a month your sheet hasn't totalled yet.</p>
+
+<h3>7. Profit</h3>
+<div class="formula-box">Total Revenue − Total Expenses = Profit for the Period</div>
+<p>Same logic as Total Expenses: your sheet's own "Profit for the Period" cell is used when present, otherwise it's calculated. If your sheet's stated profit and the freshly-calculated one disagree by more than ₹1, the dashboard shows a small red flag on the Profit step of the waterfall.</p>
+<div class="note">This flag almost always means one or more expense line items were left blank for that month in your sheet — not a bug in the dashboard's math. A common example: if July's expense rows are empty, Revenue − ₹0 = Revenue, so Profit will look identical to Revenue for that month.</div>
+
+<h3>8. Profit Margin</h3>
+<div class="formula-box">(Profit ÷ Total Revenue) × 100 = Profit Margin %</div>
+
+<h3>9. "% of Revenue" figures</h3>
+<p>Shown next to each expense category (in the composition donut, the cost-structure chart, and every expandable section). For any category:</p>
+<div class="formula-box">(Category Value ÷ Total Revenue for that month) × 100</div>
+<p>This tells you what share of the top line each cost category is eating up.</p>
+
+<h3>10. The ▲ / ▼ change shown on KPI cards</h3>
+<p>Compares the selected month to the previous available month in that unit's sheet:</p>
+<div class="formula-box">(Current month − Previous month) ÷ |Previous month| × 100</div>
+<p>Shown for Revenue, Expenses, and Profit. If there's no earlier month to compare against, the card says "First month on file" instead.</p>
+
+<h3>11. FY Total / "UPTO" figures</h3>
+<p>This adds up every month currently present in the sheet for that unit. It is <b>not</b> a guaranteed year-to-date total — it only reflects whichever months actually have data. If a month is missing or blank, the FY Total simply won't include it, and the "Data quality notes" banner will call this out when it's likely to be misleading.</p>
+
+<h3>12. Inventory — Stock Movement chart</h3>
+<p>Plots Opening Stock and Closing Stock (read directly from Section 2 line items) side by side for each month, with Material Purchased overlaid as a line for context. The small summary line beneath it shows the in-month change: Closing Stock − Opening Stock.</p>
+
+<h3>13. Employee Cost & Incentives chart</h3>
+<p>The horizontal bar shows every line item under Employee Benefits Expenses for the selected month. The smaller trend chart below it splits those same line items into two running totals across all months, using simple keyword matching on each line's label:</p>
+<ul>
+<li>Any label containing <b>"incentive"</b> or <b>"director"</b> → grouped as <i>Incentive / Director Pay</i></li>
+<li>Any label containing <b>"bonus"</b> → grouped as <i>Bonus</i></li>
+</ul>
+<div class="note">Because this is text-based matching, renaming a line item (e.g. from "Incentive" to something without that word) would shift it out of this classification. Everything still shows correctly in the full line-item table either way — only this one summary chart depends on the wording.</div>
+
+<h3>14. Data quality notes banner</h3>
+<p>Two automatic checks run every time you switch month or unit:</p>
+<ul>
+<li><b>Blank month detection</b> — if every single line item across every section is empty for a given month, that month is listed as blank.</li>
+<li><b>Profit mismatch detection</b> — compares your sheet's stated Profit to a freshly-calculated Revenue − Expenses. A gap larger than ₹1 gets flagged (see Section 7 above for why this happens).</li>
+</ul>
+<p>If neither check finds anything, the banner doesn't appear at all for that unit.</p>
+
+<h3>15. Currency formatting</h3>
+<p>Figures are abbreviated for readability: <b>Cr</b> = Crore (1,00,00,000), <b>L</b> = Lakh (1,00,000), <b>K</b> = Thousand. Anything under ₹1,000 is shown in full. This is display-only — all calculations underneath use the exact, unrounded figures from your sheet.</p>
+
+<h3>16. What "uploading a fresh file" actually does</h3>
+<p>Every time you choose an Excel file, the dashboard re-parses it from scratch and rebuilds every number, chart, and label on this page. Nothing persists between page loads — if you close or refresh this tab, you'll need to upload the workbook again. No data is sent anywhere; everything above happens locally in your browser.</p>
+
+<h3>17. Master Tracking (cross-unit view)</h3>
+<p>Once you've loaded 2 or more unit workbooks, a teal <b>"⇄ Master Tracking"</b> tab appears alongside the individual unit tabs. It doesn't introduce any new calculations — every figure on this tab is computed with the exact same formulas described in Sections 2–9 above, just laid out side by side for every loaded unit at once.</p>
+<ul>
+<li><b>Comparison basis</b> — the month tabs shown here are only the months that exist in <i>every</i> currently loaded unit's sheet (e.g. if all 5 units have Apr–Jul, you'll see those 4 tabs). "FY Total" is always available regardless, since it's simply each unit's own running total.</li>
+<li><b>Group Revenue / Group Profit</b> — the straight sum of that metric across all loaded units for the selected basis.</li>
+<li><b>Average Margin</b> — a simple (unweighted) average of each unit's margin, not a revenue-weighted blend.</li>
+<li><b>Revenue Share donut</b> — each unit's revenue as a % of the combined group revenue for the selected basis.</li>
+<li><b>Profit Margin ranking</b> — bars are colored green when a unit's margin is at or above the group average, red when below, so underperformers are visible at a glance.</li>
+<li><b>Stock Position chart</b> — only includes units that actually have Opening/Closing Stock line items; units without stock data are simply left out rather than shown as zero.</li>
+<li><b>Full Figures table</b> — sits at the bottom, after the charts, for anyone who wants the exact numbers behind what the charts show. Green/red table cells mark the best and weakest unit in that column.</li>
+</ul>
+<div class="note">If your loaded units have no months in common at all, Master Tracking falls back to FY Total only and says so explicitly — it will never silently compare figures drawn from different, incomparable periods.</div>
+`;
+
+
+
+        function fmtINR(v) {
+            if (v === null || v === undefined || isNaN(v)) return null;
+            const sign = v < 0 ? "-" : "";
+            const abs = Math.abs(v);
+            if (abs === 0) return "₹0";
+            if (abs >= 1e7) return sign + "₹" + (abs / 1e7).toFixed(2) + " Cr";
+            if (abs >= 1e5) return sign + "₹" + (abs / 1e5).toFixed(2) + " L";
+            if (abs >= 1e3) return sign + "₹" + (abs / 1e3).toFixed(1) + " K";
+            return sign + "₹" + abs.toFixed(0);
+        }
+        function cell(v) { const f = fmtINR(v); return f === null ? '<td><span class="blank">—</span></td>' : '<td>' + f + '</td>'; }
+        function niceMax(v) { if (v <= 0) return 10; const mag = Math.pow(10, Math.floor(Math.log10(v))); const norm = v / mag; let n; if (norm <= 1) n = 1; else if (norm <= 2) n = 2; else if (norm <= 5) n = 5; else n = 10; return n * mag; }
+        function shortSecName(n) { return n.replace(' Expenses', '').replace(' Cost', '').replace(' Consumed', ''); }
+        function cssSafe(s) { return s.replace(/[^a-z0-9]/gi, '_'); }
+
+        // ---------------------------------------------------------------------------
+        // CHART BUILDERS (return SVG markup strings)
+        // ---------------------------------------------------------------------------
+        function groupedBarLineChart(data, seriesBars, lineSeries, height) {
+            height = height || 300;
+            const W = 900, H = height, marginL = 64, marginR = 10, marginT = 26, marginB = 28;
+            const innerW = W - marginL - marginR, innerH = H - marginT - marginB;
+            const n = data.length || 1, groupW = innerW / n, barPad = 0.2 * groupW, barW = (groupW - barPad) / seriesBars.length;
+            let maxVal = 0, minVal = 0;
+            data.forEach(d => {
+                seriesBars.forEach(s => { const v = d[s.key] || 0; if (v > maxVal) maxVal = v; if (v < minVal) minVal = v; });
+                if (lineSeries) { const v = d[lineSeries.key] || 0; if (v > maxVal) maxVal = v; if (v < minVal) minVal = v; }
+            });
+            const axisMax = niceMax(maxVal);
+            const axisMin = minVal < 0 ? -niceMax(-minVal) : 0;
+            const range = axisMax - axisMin || 1;
+            const yPos = v => marginT + innerH * (1 - ((v - axisMin) / range));
+            const zeroY = yPos(0);
+            let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:' + H + 'px;">';
+            const gridSteps = 4;
+            for (let i = 0; i <= gridSteps; i++) {
+                const val = axisMin + (range * i / gridSteps); const y = yPos(val);
+                svg += '<line x1="' + marginL + '" y1="' + y.toFixed(1) + '" x2="' + (W - marginR) + '" y2="' + y.toFixed(1) + '" stroke="' + C.line + '" stroke-width="1"/>';
+                svg += '<text x="' + (marginL - 8) + '" y="' + (y + 4).toFixed(1) + '" font-family="IBM Plex Mono" font-size="10" fill="' + C.slate + '" text-anchor="end">' + fmtINR(val) + '</text>';
+            }
+            if (axisMin < 0) { svg += '<line x1="' + marginL + '" y1="' + zeroY.toFixed(1) + '" x2="' + (W - marginR) + '" y2="' + zeroY.toFixed(1) + '" stroke="' + C.slate + '" stroke-width="1.2"/>'; }
+            data.forEach((d, gi) => {
+                const groupX = marginL + gi * groupW + barPad / 2;
+                seriesBars.forEach((s, si) => {
+                    const val = d[s.key] || 0, x = groupX + si * barW;
+                    const yTop = yPos(Math.max(val, 0)), yBot = yPos(Math.min(val, 0));
+                    const barH = Math.max(yBot - yTop, 0);
+                    svg += '<rect x="' + x.toFixed(1) + '" y="' + yTop.toFixed(1) + '" width="' + (barW * 0.85).toFixed(1) + '" height="' + barH.toFixed(1) + '" fill="' + s.color + '" rx="3"><title>' + s.key + ' (' + d.name + '): ' + fmtINR(val) + '</title></rect>';
+                    const labelY = val >= 0 ? Math.max(yTop - 5, 12) : yBot + 13;
+                    svg += '<text x="' + (x + barW * 0.425).toFixed(1) + '" y="' + labelY.toFixed(1) + '" font-family="IBM Plex Mono" font-size="9" font-weight="600" fill="' + C.ink + '" text-anchor="middle">' + (fmtINR(val) || '') + '</text>';
+                });
+                svg += '<text x="' + (marginL + gi * groupW + groupW / 2).toFixed(1) + '" y="' + (H - 8) + '" font-family="IBM Plex Mono" font-size="11" fill="' + C.slate + '" text-anchor="middle">' + d.name + '</text>';
+            });
+            if (lineSeries) {
+                let pts = '';
+                data.forEach((d, gi) => { const val = d[lineSeries.key] || 0; const x = marginL + gi * groupW + groupW / 2; const y = yPos(val); pts += x.toFixed(1) + ',' + y.toFixed(1) + ' '; });
+                svg += '<polyline points="' + pts + '" fill="none" stroke="' + lineSeries.color + '" stroke-width="2.5"/>';
+                data.forEach((d, gi) => {
+                    const val = d[lineSeries.key] || 0; const x = marginL + gi * groupW + groupW / 2; const y = yPos(val);
+                    svg += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="' + lineSeries.color + '" stroke="#fff" stroke-width="1.5"><title>' + lineSeries.key + ' (' + d.name + '): ' + fmtINR(val) + '</title></circle>';
+                    const above = val >= 0;
+                    const ly = above ? Math.max(y - 9, 12) : y + 16;
+                    svg += '<text x="' + x.toFixed(1) + '" y="' + ly.toFixed(1) + '" font-family="IBM Plex Mono" font-size="9.5" font-weight="700" fill="' + lineSeries.color + '" text-anchor="middle">' + (fmtINR(val) || '') + '</text>';
+                });
+            }
+            svg += '</svg>';
+            return svg;
+        }
+
+        function stackedBarChart(data, series, height) {
+            height = height || 260;
+            const W = 900, H = height, marginL = 64, marginR = 10, marginT = 26, marginB = 28;
+            const innerW = W - marginL - marginR, innerH = H - marginT - marginB;
+            const n = data.length || 1, groupW = innerW / n, barW = groupW * 0.55;
+            let maxVal = 0;
+            data.forEach(d => { let sum = 0; series.forEach(s => sum += (d[s.key] || 0)); if (sum > maxVal) maxVal = sum; });
+            const axisMax = niceMax(maxVal);
+            const scaleY = v => innerH * ((v || 0) / axisMax);
+            let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:' + H + 'px;">';
+            for (let i = 0; i <= 4; i++) {
+                const val = axisMax * i / 4; const y = marginT + innerH - scaleY(val);
+                svg += '<line x1="' + marginL + '" y1="' + y + '" x2="' + (W - marginR) + '" y2="' + y + '" stroke="' + C.line + '" stroke-width="1"/>';
+                svg += '<text x="' + (marginL - 8) + '" y="' + (y + 4) + '" font-family="IBM Plex Mono" font-size="10" fill="' + C.slate + '" text-anchor="end">' + fmtINR(val) + '</text>';
+            }
+            data.forEach((d, gi) => {
+                let cum = 0; const x = marginL + gi * groupW + (groupW - barW) / 2;
+                let total = 0; series.forEach(s => total += (d[s.key] || 0));
+                series.forEach(s => {
+                    const val = d[s.key] || 0; const yTop = marginT + innerH - scaleY(cum + val); const h = scaleY(val);
+                    svg += '<rect x="' + x.toFixed(1) + '" y="' + yTop.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + s.color + '"><title>' + s.key + ' (' + d.name + '): ' + fmtINR(val) + '</title></rect>';
+                    if (h > 15 && val > 0) {
+                        svg += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (yTop + h / 2 + 3.5).toFixed(1) + '" font-family="IBM Plex Mono" font-size="8.5" font-weight="600" fill="#fff" text-anchor="middle">' + fmtINR(val) + '</text>';
+                    }
+                    cum += val;
+                });
+                const topY = marginT + innerH - scaleY(total);
+                svg += '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + Math.max(topY - 6, 12).toFixed(1) + '" font-family="IBM Plex Mono" font-size="10" font-weight="700" fill="' + C.ink + '" text-anchor="middle">' + fmtINR(total) + '</text>';
+                svg += '<text x="' + (marginL + gi * groupW + groupW / 2).toFixed(1) + '" y="' + (H - 8) + '" font-family="IBM Plex Mono" font-size="11" fill="' + C.slate + '" text-anchor="middle">' + d.name + '</text>';
+            });
+            svg += '</svg>';
+            return svg;
+        }
+
+        function donutChart(data, colors) {
+            const size = 170, sw = 26, margin = 112;
+            const W = size + margin * 2, H = size + 50;
+            const cx = margin + size / 2, cy = H / 2;
+            const rOuter = size / 2, rMid = rOuter - sw / 2;
+            const circumference = 2 * Math.PI * rMid;
+            const total = data.reduce((a, b) => a + b.value, 0);
+            if (total <= 0) return '<div style="text-align:center;color:' + C.slate + ';font-size:12px;padding:30px 0;">No expense data for this month</div>';
+            let cum = 0;
+            let ringSvg = '';
+            const rightLabels = [], leftLabels = [];
+            data.forEach((s, i) => {
+                const frac = s.value / total, len = frac * circumference;
+                const dashArray = len.toFixed(2) + ' ' + (circumference - len).toFixed(2);
+                const dashOffset = (-cum * circumference).toFixed(2);
+                ringSvg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + rMid + '" fill="none" stroke="' + colors[i % colors.length] + '" stroke-width="' + sw + '" stroke-dasharray="' + dashArray + '" stroke-dashoffset="' + dashOffset + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"><title>' + s.name + ': ' + fmtINR(s.value) + ' (' + (frac * 100).toFixed(1) + '%)</title></circle>';
+                if (frac > 0.02) {
+                    const midFrac = cum + frac / 2;
+                    const angle = (midFrac * 360 - 90) * Math.PI / 180;
+                    const cosA = Math.cos(angle), sinA = Math.sin(angle);
+                    const ex = cx + cosA * rOuter, ey = cy + sinA * rOuter;
+                    const bx = cx + cosA * (rOuter + 16), by = cy + sinA * (rOuter + 16);
+                    const side = cosA >= 0 ? 1 : -1;
+                    const lx = cx + side * (rOuter + 16 + 34);
+                    const entry = { ex, ey, bx, by, lx, ly: by, side, val: s.value, pct: frac * 100, color: colors[i % colors.length] };
+                    (side > 0 ? rightLabels : leftLabels).push(entry);
+                }
+                cum += frac;
+            });
+            [rightLabels, leftLabels].forEach(group => {
+                group.sort((a, b) => a.ly - b.ly);
+                for (let i = 1; i < group.length; i++) { if (group[i].ly < group[i - 1].ly + 20) group[i].ly = group[i - 1].ly + 20; }
+            });
+            let labelSvg = '';
+            [...rightLabels, ...leftLabels].forEach(l => {
+                labelSvg += '<polyline points="' + l.ex.toFixed(1) + ',' + l.ey.toFixed(1) + ' ' + l.bx.toFixed(1) + ',' + l.by.toFixed(1) + ' ' + l.lx.toFixed(1) + ',' + l.ly.toFixed(1) + '" fill="none" stroke="' + C.slate + '" stroke-width="1"/>';
+                const anchor = l.side > 0 ? 'start' : 'end';
+                const tx = l.side > 0 ? l.lx + 4 : l.lx - 4;
+                labelSvg += '<text x="' + tx.toFixed(1) + '" y="' + (l.ly - 2).toFixed(1) + '" font-family="IBM Plex Mono" font-size="11" font-weight="700" fill="' + C.ink + '" text-anchor="' + anchor + '">' + fmtINR(l.val) + '</text>';
+                labelSvg += '<text x="' + tx.toFixed(1) + '" y="' + (l.ly + 11).toFixed(1) + '" font-family="IBM Plex Mono" font-size="9.5" fill="' + C.slate + '" text-anchor="' + anchor + '">' + l.pct.toFixed(1) + '%</text>';
+            });
+            let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;margin:0 auto;">';
+            svg += ringSvg + labelSvg;
+            svg += '<text x="' + cx + '" y="' + (cy - 4) + '" font-family="IBM Plex Mono" font-size="9" fill="' + C.slate + '" text-anchor="middle">TOTAL</text>';
+            svg += '<text x="' + cx + '" y="' + (cy + 13) + '" font-family="IBM Plex Mono" font-size="14" font-weight="700" fill="' + C.ink + '" text-anchor="middle">' + fmtINR(total) + '</text>';
+            svg += '</svg>';
+            return svg;
+        }
+
+        function horizontalBarChart(data, color, height, valueFmt) {
+            const W = 900, rowH = 25; const H = height || (data.length * rowH + 16);
+            const marginL = 165, marginR = 75, marginT = 8;
+            const innerW = W - marginL - marginR;
+            const fmt = valueFmt || fmtINR;
+            const maxVal = Math.max.apply(null, data.map(d => Math.abs(d.value)).concat([1]));
+            const axisMax = niceMax(maxVal);
+            let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:' + H + 'px;">';
+            data.forEach((d, i) => {
+                const y = marginT + i * rowH, w = (d.value / axisMax) * innerW;
+                const barColor = d.color || color;
+                svg += '<text x="' + (marginL - 8) + '" y="' + (y + 14) + '" font-family="Inter" font-size="10.5" fill="' + C.ink + '" text-anchor="end">' + d.name + '</text>';
+                svg += '<rect x="' + marginL + '" y="' + (y + 3) + '" width="' + w.toFixed(1) + '" height="15" fill="' + barColor + '" rx="3"><title>' + d.name + ': ' + fmt(d.value) + '</title></rect>';
+                svg += '<text x="' + (marginL + w + 6).toFixed(1) + '" y="' + (y + 14) + '" font-family="IBM Plex Mono" font-size="10.5" font-weight="700" fill="' + C.ink + '">' + fmt(d.value) + '</text>';
+            });
+            svg += '</svg>';
+            return svg;
+        }
+
+        // ---------------------------------------------------------------------------
+        // PARSER — Strategy A: a single consolidated "...MONTHLY..." style tab
+        // ---------------------------------------------------------------------------
+        function findHeaderCols(rows, maxScanRows) {
+            maxScanRows = maxScanRows || 8;
+            let colToMonth = {}; let uptoCol = null;
+            for (let r = 0; r < Math.min(maxScanRows, rows.length); r++) {
+                const row = rows[r]; if (!row) continue;
+                row.forEach((cellVal, ci) => {
+                    if (typeof cellVal === 'string') {
+                        const t = cellVal.trim().toUpperCase();
+                        if (MONTH_ABBR.includes(t) && !(ci in colToMonth)) colToMonth[ci] = t;
+                        if (t === 'UPTO') uptoCol = ci;
+                    }
+                });
+            }
+            return { colToMonth, uptoCol };
+        }
+
+        function extractSectionsFromRows(rows, colToMonth, uptoCol) {
+            const monthKeys = Object.keys(colToMonth);
+            if (monthKeys.length === 0) return null;
+            const sections = {}; const order = []; let section = null; const topline = {};
+            rows.forEach(r => {
+                const note = r[0], label = r[1];
+                if (typeof note === 'number') {
+                    section = note; order.push(section);
+                    sections[section] = { name: SECTION_NAMES[section] || String(label || ('Section ' + section)), items: [], subtotal: null };
+                    return;
+                }
+                if (section === null) return;
+                const vals = {};
+                monthKeys.forEach(ci => { const mo = colToMonth[ci]; const v = r[ci]; vals[mo] = (v === undefined ? null : v); });
+                if (uptoCol !== null) { const v = r[uptoCol]; vals.UPTO = (v === undefined ? null : v); }
+                if (label !== null && label !== undefined && String(label).trim() !== '') {
+                    const lc = String(label).trim();
+                    if (/^total expenses/i.test(lc)) topline.total_expenses = vals;
+                    else if (/^profit for the period/i.test(lc) || /^profit for the month/i.test(lc)) topline.profit = vals;
+                    else { vals.label = lc; sections[section].items.push(vals); }
+                } else {
+                    const any = monthKeys.some(ci => { const v = r[ci]; return v !== null && v !== undefined; }) || (uptoCol !== null && r[uptoCol] !== null && r[uptoCol] !== undefined);
+                    if (any) sections[section].subtotal = vals;
+                }
+            });
+            if (order.length === 0) return null;
+            const uniqueOrder = [...new Set(order)];
+            return { sections: uniqueOrder.map(s => sections[s]), topline, months: Object.values(colToMonth) };
+        }
+
+        function tryParseConsolidated(wb) {
+            const candidateSheet = wb.SheetNames.find(n => /month/i.test(n));
+            if (!candidateSheet) return null;
+            const ws = wb.Sheets[candidateSheet];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+            const { colToMonth, uptoCol } = findHeaderCols(rows);
+            const result = extractSectionsFromRows(rows, colToMonth, uptoCol);
+            if (!result) return null;
+            const label = (rows[0] && rows[0][0]) ? String(rows[0][0]).trim() : null;
+            result.label = label;
+            result.sourceSheet = candidateSheet;
+            result.months = FISCAL_ORDER.filter(mo => result.months.includes(mo));
+            return result;
+        }
+
+        // ---------------------------------------------------------------------------
+        // PARSER — Strategy B: separate month-named tabs (e.g. "APR-2026","MAY-2026")
+        // ---------------------------------------------------------------------------
+        function parseSingleMonthSheet(rows, monthAbbrev) {
+            const { colToMonth } = findHeaderCols(rows);
+            let valueCol = null;
+            Object.keys(colToMonth).forEach(ci => { if (colToMonth[ci] === monthAbbrev) valueCol = parseInt(ci); });
+            if (valueCol === null) return null;
+            const sections = {}; const order = []; let section = null; const topline = {};
+            rows.forEach(r => {
+                const note = r[0], label = r[1];
+                if (typeof note === 'number') {
+                    section = note; order.push(section);
+                    sections[section] = { name: SECTION_NAMES[section] || String(label || ('Section ' + section)), items: [], subtotal: null };
+                    return;
+                }
+                if (section === null) return;
+                const v = r[valueCol];
+                if (label !== null && label !== undefined && String(label).trim() !== '') {
+                    const lc = String(label).trim();
+                    if (/^total expenses/i.test(lc)) topline.total_expenses = v;
+                    else if (/^profit for the period/i.test(lc) || /^profit for the month/i.test(lc)) topline.profit = v;
+                    else if (v !== null && v !== undefined && typeof v !== 'string') sections[section].items.push({ label: lc, value: v });
+                } else if (v !== null && v !== undefined && typeof v !== 'string') {
+                    sections[section].subtotal = v;
+                }
+            });
+            if (order.length === 0) return null;
+            const uniqueOrder = [...new Set(order)];
+            return { sections: uniqueOrder.map(s => sections[s]), topline, label: rows[0] && rows[0][0] ? String(rows[0][0]).trim() : null };
+        }
+
+        function tryParseIndividualTabs(wb) {
+            const matches = [];
+            wb.SheetNames.forEach(name => {
+                const m = name.trim().toUpperCase().match(/^([A-Z]{3})[\s\-_]?(\d{2,4})$/);
+                if (m && MONTH_ABBR.includes(m[1])) {
+                    let year = parseInt(m[2]); if (year < 100) year += 2000;
+                    matches.push({ sheet: name, abbrev: m[1], year });
+                }
+            });
+            if (matches.length === 0) return null;
+            matches.sort((a, b) => (a.year * 12 + MONTH_ABBR.indexOf(a.abbrev)) - (b.year * 12 + MONTH_ABBR.indexOf(b.abbrev)));
+
+            const perMonth = [];
+            let label = null;
+            matches.forEach(mt => {
+                const ws = wb.Sheets[mt.sheet];
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+                const parsed = parseSingleMonthSheet(rows, mt.abbrev);
+                if (parsed) { perMonth.push({ month: mt.abbrev, year: mt.year, data: parsed }); if (!label) label = parsed.label; }
+            });
+            if (perMonth.length === 0) return null;
+
+            const sectionOrder = []; const sectionMap = {};
+            perMonth.forEach(pm => {
+                pm.data.sections.forEach(sec => {
+                    if (!sectionMap[sec.name]) { sectionMap[sec.name] = { name: sec.name, itemOrder: [], items: {}, subtotal: {} }; sectionOrder.push(sec.name); }
+                    const sm = sectionMap[sec.name];
+                    sec.items.forEach(it => {
+                        if (!(it.label in sm.items)) { sm.items[it.label] = {}; sm.itemOrder.push(it.label); }
+                        sm.items[it.label][pm.month] = it.value;
+                    });
+                    if (sec.subtotal !== null && sec.subtotal !== undefined) sm.subtotal[pm.month] = sec.subtotal;
+                });
+            });
+            const months = perMonth.map(pm => pm.month);
+            const sections = sectionOrder.map(name => {
+                const sm = sectionMap[name];
+                const items = sm.itemOrder.map(lbl => {
+                    const vals = { label: lbl };
+                    months.forEach(mo => vals[mo] = (sm.items[lbl][mo] !== undefined ? sm.items[lbl][mo] : null));
+                    const nonNull = months.map(mo => vals[mo]).filter(v => v !== null);
+                    vals.UPTO = nonNull.length ? nonNull.reduce((a, b) => a + b, 0) : null;
+                    return vals;
+                });
+                const subtotal = {};
+                months.forEach(mo => subtotal[mo] = (sm.subtotal[mo] !== undefined ? sm.subtotal[mo] : null));
+                const nonNullSub = months.map(mo => subtotal[mo]).filter(v => v !== null);
+                subtotal.UPTO = nonNullSub.length ? nonNullSub.reduce((a, b) => a + b, 0) : null;
+                return { name, items, subtotal };
+            });
+
+            const topline = { total_expenses: {}, profit: {} };
+            months.forEach(mo => { topline.total_expenses[mo] = null; topline.profit[mo] = null; });
+            perMonth.forEach(pm => {
+                if (pm.data.topline.total_expenses !== undefined) topline.total_expenses[pm.month] = pm.data.topline.total_expenses;
+                if (pm.data.topline.profit !== undefined) topline.profit[pm.month] = pm.data.topline.profit;
+            });
+            ['total_expenses', 'profit'].forEach(k => {
+                const nn = months.map(mo => topline[k][mo]).filter(v => v !== null && v !== undefined);
+                topline[k].UPTO = nn.length ? nn.reduce((a, b) => a + b, 0) : null;
+            });
+
+            return { sections, topline, months, label, sourceSheet: matches.map(m => m.sheet).join(', ') };
+        }
+
+        function buildUnitData(wb, filename) {
+            let result = tryParseConsolidated(wb);
+            if (!result) result = tryParseIndividualTabs(wb);
+            if (!result) return null;
+            result.filename = filename;
+            if (!result.label) result.label = filename.replace(/\.xlsx?$/i, '');
+            return result;
+        }
+
+        // ---------------------------------------------------------------------------
+        // FILE HANDLING
+        // ---------------------------------------------------------------------------
+        function onFilesChosen(input) {
+            const files = Array.from(input.files || []);
+            if (files.length === 0) return;
+            state.fileStatus = { type: 'info', text: 'Reading ' + files.length + ' file(s)…' };
+            render();
+            let done = 0, okCount = 0, errs = [];
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                        const unit = buildUnitData(wb, file.name);
+                        if (!unit) { errs.push(file.name + ': no recognizable monthly data found'); }
+                        else {
+                            const key = unit.label;
+                            if (!(key in UNITS)) UNIT_ORDER.push(key);
+                            UNITS[key] = unit;
+                            if (!state.expanded[key]) state.expanded[key] = {};
+                            okCount++;
+                            if (!state.unit) state.unit = key;
+                        }
+                    } catch (err) { errs.push(file.name + ': ' + err.message); }
+                    done++;
+                    if (done === files.length) {
+                        state.fileStatus = errs.length
+                            ? { type: okCount ? 'ok' : 'err', text: okCount + ' loaded' + (errs.length ? ' · Issues: ' + errs.join(' | ') : '') }
+                            : { type: 'ok', text: 'Loaded ' + okCount + ' unit(s): ' + UNIT_ORDER.join(', ') + ' · refreshed ' + new Date().toLocaleTimeString() };
+                        if (state.unit && UNITS[state.unit] && UNITS[state.unit].months.length) state.month = UNITS[state.unit].months[UNITS[state.unit].months.length - 1];
+                        render();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        function setUnit(u) { state.unit = u; state.modalOpen = null; if (u === MASTER_KEY) { render(); return; } const months = UNITS[u].months; state.month = months.length ? months[months.length - 1] : 'UPTO'; render(); }
+        function setCompareMonth(m) { state.compareMonth = m; state.modalOpen = null; render(); }
+        function setMonth(m) { state.month = m; state.modalOpen = null; render(); }
+        function toggleSection(name) { const u = state.unit; if (!state.expanded[u]) state.expanded[u] = {}; state.expanded[u][name] = !state.expanded[u][name]; render(); setTimeout(() => { if (state.expanded[u][name]) { const el = document.getElementById('section-' + cssSafe(name)); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 30); }
+        function expandAndScroll(name) { const u = state.unit; if (!state.expanded[u]) state.expanded[u] = {}; if (name) state.expanded[u][name] = true; render(); setTimeout(() => { const el = name ? document.getElementById('section-' + cssSafe(name)) : document.getElementById('totals-card'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 30); }
+        function toggleWarn() { state.warnOpen = !state.warnOpen; render(); }
+
+        // ---------------------------------------------------------------------------
+        // DERIVED DATA HELPERS
+        // ---------------------------------------------------------------------------
+        function getRevSec(unit) { return unit.sections[0]; }
+        function getExpenseSecs(unit) { return unit.sections.filter(s => s !== unit.sections[0] && s.name !== 'Changes in Inventories'); }
+        function subtotalFor(sec, mo) { return sec && sec.subtotal ? sec.subtotal[mo] : null; }
+        function findItem(sec, regex) { return sec ? sec.items.find(it => regex.test(it.label)) : null; }
+
+        // ---------------------------------------------------------------------------
+        // MASTER COMPARISON — cross-unit view
+        // ---------------------------------------------------------------------------
+        function computeUnitMetrics(unit, mo) {
+            const revSec = getRevSec(unit);
+            const expenseSecs = getExpenseSecs(unit);
+            const revVal = revSec && revSec.subtotal ? revSec.subtotal[mo] : null;
+            let expVal = unit.topline.total_expenses ? unit.topline.total_expenses[mo] : null;
+            if (expVal === null || expVal === undefined) {
+                expVal = expenseSecs.reduce((a, s) => a + (subtotalFor(s, mo) || 0), 0);
+            }
+            let profitVal = unit.topline.profit ? unit.topline.profit[mo] : null;
+            if (profitVal === null || profitVal === undefined) {
+                profitVal = (revVal || 0) - expVal;
+            }
+            const margin = (revVal !== null && revVal !== undefined && revVal !== 0) ? (profitVal / revVal) * 100 : null;
+            const cogsSec = unit.sections.find(s => s.name === 'Cost of Materials Consumed');
+            const openingItem = findItem(cogsSec, /opening stock/i);
+            const closingItem = findItem(cogsSec, /closing stock/i);
+            return {
+                revenue: revVal, expenses: expVal, profit: profitVal, margin: margin,
+                openingStock: openingItem ? openingItem[mo] : null,
+                closingStock: closingItem ? closingItem[mo] : null
+            };
+        }
+
+        function commonMonthsAcross(unitLabels) {
+            let common = null;
+            unitLabels.forEach(u => {
+                const mos = UNITS[u].months || [];
+                common = common === null ? new Set(mos) : new Set(mos.filter(x => common.has(x)));
+            });
+            const order = ['APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR'];
+            return common ? order.filter(m => common.has(m)) : [];
+        }
+
+        function bestWorst(vals, higherIsBetter) {
+            const nums = vals.filter(v => v !== null && v !== undefined);
+            if (nums.length < 2) return { best: null, worst: null };
+            const best = higherIsBetter ? Math.max(...nums) : Math.min(...nums);
+            const worst = higherIsBetter ? Math.min(...nums) : Math.max(...nums);
+            return { best, worst };
+        }
+
+        function renderMasterComparison() {
+            const commonMonths = commonMonthsAcross(UNIT_ORDER);
+            const cmpMonths = commonMonths.concat(['UPTO']);
+            if (!cmpMonths.includes(state.compareMonth)) state.compareMonth = cmpMonths[cmpMonths.length - 1];
+            const cm = state.compareMonth;
+
+            const rows = UNIT_ORDER.map(u => {
+                const met = computeUnitMetrics(UNITS[u], cm);
+                return { unit: u, short: u.length > 16 ? u.slice(0, 15) + '…' : u, months: UNITS[u].months, ...met };
+            });
+
+            let html = '';
+            html += '<div class="eyebrow" style="margin-top:14px;">Cross-Unit View</div>';
+            html += '<div class="title" style="font-size:22px;">Master Tracking</div>';
+            html += '<div class="subtitle">Tracking all ' + UNIT_ORDER.length + ' currently loaded units side by side, chart-first. Each unit\'s workbook may cover different months.</div>';
+
+            html += '<div class="tab-label">Comparison basis</div><div class="tabs">';
+            cmpMonths.forEach(mt => { html += '<div class="tab' + (mt === cm ? ' active' : '') + '" onclick="setCompareMonth(\'' + mt + '\')">' + (mt === 'UPTO' ? 'FY TOTAL' : mt + '-26') + '</div>'; });
+            html += '</div>';
+            if (commonMonths.length === 0) {
+                html += '<div class="warn-card" style="cursor:default;"><div class="warn-title"><span>ⓘ No single month is present across every unit</span></div><div class="warn-list" style="padding-left:0;list-style:none;">Only "FY Total" is guaranteed comparable here — it sums whatever months each unit has on file, which may differ in coverage. Switch to an individual unit tab for month-by-month detail.</div></div>';
+            }
+
+            // ---------------- Group-level KPI row ----------------
+            const revSum = rows.reduce((a, r) => a + (r.revenue || 0), 0);
+            const profitSum = rows.reduce((a, r) => a + (r.profit || 0), 0);
+            const marginsPresent = rows.filter(r => r.margin !== null && r.margin !== undefined).map(r => r.margin);
+            const avgMargin = marginsPresent.length ? marginsPresent.reduce((a, b) => a + b, 0) / marginsPresent.length : null;
+            const topRevenue = rows.reduce((best, r) => (r.revenue || 0) > (best.revenue || 0) ? r : best, rows[0]);
+            const topMargin = marginsPresent.length ? rows.reduce((best, r) => (r.margin !== null && r.margin !== undefined && r.margin > (best.margin === null || best.margin === undefined ? -Infinity : best.margin)) ? r : best, rows[0]) : null;
+
+            function kpi(label, value, sub, accent) {
+                return '<div class="kpi-card"><div class="kpi-accent" style="background:' + accent + '"></div>' +
+                    '<div class="kpi-label">' + label + '</div><div class="kpi-value">' + value + '</div>' +
+                    (sub ? '<div class="kpi-sub">' + sub + '</div>' : '') + '</div>';
+            }
+            html += '<div class="kpi-row">';
+            html += kpi('Group Revenue', fmtINR(revSum) || '—', 'Across all ' + UNIT_ORDER.length + ' units', C.teal);
+            html += kpi('Group Profit', fmtINR(profitSum) || '—', profitSum >= 0 ? 'Net positive' : 'Net loss', profitSum >= 0 ? C.teal : C.rose);
+            html += kpi('Average Margin', avgMargin !== null ? avgMargin.toFixed(1) + '%' : '—', 'Simple average across units', C.tealDeep);
+            html += kpi('Top by Revenue', topRevenue.short, fmtINR(topRevenue.revenue) || '—', C.amber);
+            html += '</div>';
+
+            // ---------------- Revenue Share donut + Revenue/Profit bar ----------------
+            const shareData = rows.filter(r => r.revenue > 0).map(r => ({ name: r.unit, value: r.revenue }));
+            const shareSvg = donutChart(shareData, PALETTE);
+            const shareSum = shareData.reduce((a, b) => a + b.value, 0);
+            CHART_CACHE['cmp-share'] = { title: 'Revenue Share by Unit — ' + (cm === 'UPTO' ? 'FY Total' : cm), html: shareSvg };
+            const revChartData = rows.map(r => ({ name: r.short, Revenue: r.revenue || 0, Profit: r.profit || 0 }));
+            const revSvg = groupedBarLineChart(revChartData, [{ key: 'Revenue', color: C.teal }, { key: 'Profit', color: C.tealDeep }], null, 300);
+            CHART_CACHE['cmp-revprofit'] = { title: 'Revenue & Profit by Unit — ' + (cm === 'UPTO' ? 'FY Total' : cm), html: revSvg };
+
+            html += '<div class="grid2">';
+            html += '<div class="card">' + cardHead('Revenue & Profit by Unit', (cm === 'UPTO' ? 'FY Total' : cm), 'cmp-revprofit') + revSvg;
+            html += '<div class="legend-row"><div class="legend-item"><span class="legend-dot" style="background:' + C.teal + '"></span>Revenue</div><div class="legend-item"><span class="legend-dot" style="background:' + C.tealDeep + '"></span>Profit</div></div></div>';
+            html += '<div class="card">' + cardHead('Revenue Share', (cm === 'UPTO' ? 'FY Total' : cm), 'cmp-share') + shareSvg;
+            html += '</div>';
+            html += '</div>';
+
+            // ---------------- Margin ranking (color-coded vs group average) ----------------
+            const marginData = rows.filter(r => r.margin !== null && r.margin !== undefined)
+                .map(r => ({ name: r.unit, value: Math.round(r.margin * 10) / 10, color: r.margin >= (avgMargin || 0) ? C.teal : C.rose }))
+                .sort((a, b) => b.value - a.value);
+            if (marginData.length) {
+                const pctFmt = v => v.toFixed(1) + '%';
+                const marginSvg = horizontalBarChart(marginData, C.tealDeep, marginData.length * 26 + 16, pctFmt);
+                CHART_CACHE['cmp-margin'] = { title: 'Profit Margin by Unit (%) — ' + (cm === 'UPTO' ? 'FY Total' : cm), html: marginSvg };
+                html += '<div class="card" style="margin-bottom:16px;">' + cardHead('Profit Margin by Unit (%), ranked', (cm === 'UPTO' ? 'FY Total' : cm) + ' · green = at or above the ' + avgMargin.toFixed(1) + '% group average, red = below', 'cmp-margin') + marginSvg + '</div>';
+            }
+
+            // ---------------- Stock Position ----------------
+            const stockRows = rows.filter(r => r.closingStock !== null && r.closingStock !== undefined);
+            if (stockRows.length) {
+                const stockChartData = stockRows.map(r => ({ name: r.short, Opening: r.openingStock || 0, Closing: r.closingStock || 0 }));
+                const stockSvg = groupedBarLineChart(stockChartData, [{ key: 'Opening', color: '#CBB98A' }, { key: 'Closing', color: C.amber }], null, 300);
+                CHART_CACHE['cmp-stock'] = { title: 'Stock Position by Unit — ' + (cm === 'UPTO' ? 'FY Total' : cm), html: stockSvg };
+                html += '<div class="card" style="margin-bottom:16px;">' + cardHead('Stock Position by Unit', (cm === 'UPTO' ? 'FY Total' : cm), 'cmp-stock') + stockSvg;
+                html += '<div class="legend-row"><div class="legend-item"><span class="legend-dot" style="background:#CBB98A"></span>Opening</div><div class="legend-item"><span class="legend-dot" style="background:' + C.amber + '"></span>Closing</div></div></div>';
+            }
+
+            // ---------------- Full figures table (reference, below the charts) ----------------
+            const revBW = bestWorst(rows.map(r => r.revenue), true);
+            const profitBW = bestWorst(rows.map(r => r.profit), true);
+            const marginBW = bestWorst(rows.map(r => r.margin), true);
+            html += '<div class="detail-heading" style="margin-top:10px;">Full Figures</div><div class="detail-sub">Same data as the charts above, in table form for exact values.</div>';
+            html += '<div class="card" style="margin-bottom:16px;">';
+            html += '<table class="cmp-table"><thead><tr><th>Unit</th><th>Months on file</th><th>Revenue</th><th>Expenses</th><th>Profit</th><th>Margin</th><th>Closing Stock</th></tr></thead><tbody>';
+            rows.forEach(r => {
+                function cls(v, bw) { if (v === null || v === undefined || !bw || bw.best === bw.worst) return ''; if (v === bw.best) return 'cmp-best'; if (v === bw.worst) return 'cmp-worst'; return ''; }
+                html += '<tr><td>' + r.unit + '</td><td style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:' + C.slate + ';text-align:left;">' + (r.months.join(', ') || '—') + '</td>';
+                html += '<td class="' + cls(r.revenue, revBW) + '">' + (fmtINR(r.revenue) || '—') + '</td>';
+                html += '<td>' + (fmtINR(r.expenses) || '—') + '</td>';
+                html += '<td class="' + cls(r.profit, profitBW) + '">' + (fmtINR(r.profit) || '—') + '</td>';
+                html += '<td class="' + cls(r.margin, marginBW) + '">' + (r.margin !== null && r.margin !== undefined ? r.margin.toFixed(1) + '%' : '—') + '</td>';
+                html += '<td>' + (fmtINR(r.closingStock) || '—') + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            html += '<div style="font-size:10.5px;color:' + C.slate + ';margin-top:8px;">Green = best figure in that column, red = weakest — shown only when values genuinely differ.</div>';
+            html += '</div>';
+
+            html += '<div class="footer-note">Master Tracking recalculates every figure the same way as each unit\'s own tab (see the User Manual, top right) — it just lines them up side by side. Click ⤢ on any chart to view it full-page.</div>';
+
+            return html;
+        }
+
+
+        // ---------------------------------------------------------------------------
+        // RENDER
+        // ---------------------------------------------------------------------------
+        function render() {
+            CHART_CACHE = {};
+            let html = '';
+            html += '<button class="help-btn" onclick="openManual()" title="User manual">?</button>';
+            html += '<div class="title">ANU Group — MIS Dashboard</div>';
+
+            html += '<div class="upload-card"><div class="upload-left"><div class="upload-title">🔄 Load or refresh unit workbooks</div>';
+            html += '<div class="file-status ' + (state.fileStatus.type === 'ok' ? 'ok' : state.fileStatus.type === 'err' ? 'err' : '') + '">' + state.fileStatus.text + '</div></div>';
+            html += '<div><input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none" onchange="onFilesChosen(this)"><button class="upload-btn" onclick="document.getElementById(\'fileInput\').click()">Choose Excel file(s)</button></div>';
+            html += '</div>';
+
+            if (UNIT_ORDER.length === 0) {
+                html += '<div class="empty-state">No units loaded yet — choose one or more Excel files above (you can select all 5 at once).</div>';
+                if (state.manualOpen) {
+                    html += '<div class="modal-overlay" onclick="if(event.target===this) closeManual()">';
+                    html += '<div class="modal-card manual-card"><div class="modal-head"><div class="modal-title">User Manual — Figures & Calculations</div><button class="modal-close" onclick="closeManual()">✕</button></div>';
+                    html += '<div class="manual-body">' + MANUAL_HTML + '</div></div></div>';
+                }
+                document.getElementById('app').innerHTML = html;
+                return;
+            }
+
+            html += '<div class="tab-label">Unit</div><div class="tabs">';
+            UNIT_ORDER.forEach(u => { html += '<div class="tab unit-tab' + (u === state.unit ? ' active' : '') + '" onclick="setUnit(\'' + u.replace(/'/g, "\\'") + '\')">' + u + '</div>'; });
+            if (UNIT_ORDER.length >= 2) {
+                html += '<div class="tab unit-tab master-tab' + (state.unit === MASTER_KEY ? ' active' : '') + '" onclick="setUnit(\'' + MASTER_KEY + '\')">⇄ Master Tracking</div>';
+            }
+            html += '</div>';
+
+            if (state.unit === MASTER_KEY) {
+                html += renderMasterComparison();
+                if (state.modalOpen && CHART_CACHE[state.modalOpen]) {
+                    const mc = CHART_CACHE[state.modalOpen];
+                    html += '<div class="modal-overlay" onclick="if(event.target===this) closeChartModal()">';
+                    html += '<div class="modal-card"><div class="modal-head"><div class="modal-title">' + mc.title + '</div><button class="modal-close" onclick="closeChartModal()">✕</button></div>';
+                    html += '<div class="modal-body">' + mc.html + '</div></div></div>';
+                }
+                if (state.manualOpen) {
+                    html += '<div class="modal-overlay" onclick="if(event.target===this) closeManual()">';
+                    html += '<div class="modal-card manual-card"><div class="modal-head"><div class="modal-title">User Manual — Figures & Calculations</div><button class="modal-close" onclick="closeManual()">✕</button></div>';
+                    html += '<div class="manual-body">' + MANUAL_HTML + '</div></div></div>';
+                }
+                document.getElementById('app').innerHTML = html;
+                return;
+            }
+
+            const unit = UNITS[state.unit];
+            const months = unit.months || [];
+            const tabMonths = months.concat(['UPTO']);
+            if (!tabMonths.includes(state.month)) state.month = tabMonths[tabMonths.length - 1];
+            const m = state.month;
+
+            html += '<div class="tab-label">Viewing figures for</div><div class="tabs">';
+            tabMonths.forEach(mt => { html += '<div class="tab' + (mt === m ? ' active' : '') + '" onclick="setMonth(\'' + mt + '\')">' + (mt === 'UPTO' ? 'FY TOTAL' : mt + '-26') + '</div>'; });
+            html += '</div>';
+            html += '<div class="source-tag">Source tab(s): ' + unit.sourceSheet + '</div>';
+
+            const revSec = getRevSec(unit);
+            const expenseSecs = getExpenseSecs(unit);
+
+            // per-month revenue/expense/profit, with calculated fallback
+            function revFor(mo) { return subtotalFor(revSec, mo); }
+            function expFor(mo) {
+                const sheetVal = unit.topline.total_expenses ? unit.topline.total_expenses[mo] : null;
+                if (sheetVal !== null && sheetVal !== undefined) return sheetVal;
+                return expenseSecs.reduce((a, s) => a + (subtotalFor(s, mo) || 0), 0);
+            }
+            function profitFor(mo) {
+                const sheetVal = unit.topline.profit ? unit.topline.profit[mo] : null;
+                if (sheetVal !== null && sheetVal !== undefined) return sheetVal;
+                return (revFor(mo) || 0) - expFor(mo);
+            }
+
+            // Data quality
+            const blankMonths = months.filter(mo => unit.sections.every(sec => sec.items.every(it => it[mo] === null || it[mo] === undefined)));
+            let mismatchMonths = [];
+            months.concat(['UPTO']).forEach(mo => {
+                const rv = revFor(mo); const sumExp = expenseSecs.reduce((a, s) => a + (subtotalFor(s, mo) || 0), 0);
+                const calc = (rv || 0) - sumExp; const pv = unit.topline.profit ? unit.topline.profit[mo] : null;
+                if (pv !== null && pv !== undefined && Math.abs(pv - calc) > 1) mismatchMonths.push(mo);
+            });
+            if (blankMonths.length || mismatchMonths.length) {
+                html += '<div class="warn-card" onclick="toggleWarn()"><div class="warn-title"><span>⚠ Data quality notes for ' + state.unit + ' ' + (state.warnOpen ? '' : '(click to expand)') + '</span><span class="chevron' + (state.warnOpen ? ' open' : '') + '">▶</span></div>';
+                if (state.warnOpen) {
+                    html += '<ul class="warn-list">';
+                    if (blankMonths.length) html += '<li><b>' + blankMonths.join(', ') + '</b> ' + (blankMonths.length > 1 ? 'are' : 'is') + ' completely blank in this sheet.</li>';
+                    if (mismatchMonths.length) html += '<li>For <b>' + mismatchMonths.join(', ') + '</b>, "Profit for the Period" in the sheet doesn\'t match Revenue−Expenses calculated from its own sections — usually because some expense rows are blank for that month.</li>';
+                    html += '</ul>';
+                }
+                html += '</div>';
+            }
+
+            // ---------------- KPI ROW ----------------
+            const idx = months.indexOf(m);
+            const prevMo = idx > 0 ? months[idx - 1] : null;
+            const revVal = revFor(m), expVal = expFor(m), profitVal = profitFor(m);
+            const margin = revVal ? (profitVal / revVal) * 100 : null;
+            const pctChange = (cur, before) => (before !== null && before !== undefined && before !== 0) ? ((cur - before) / Math.abs(before)) * 100 : null;
+            const revDelta = prevMo !== null ? pctChange(revVal, revFor(prevMo)) : null;
+            const expDelta = prevMo !== null ? pctChange(expVal, expFor(prevMo)) : null;
+            const profitDelta = prevMo !== null ? pctChange(profitVal, profitFor(prevMo)) : null;
+
+            function kpi(label, value, sub, deltaLabel, deltaGood, accent) {
+                return '<div class="kpi-card"><div class="kpi-accent" style="background:' + accent + '"></div>' +
+                    '<div class="kpi-label">' + label + '</div><div class="kpi-value">' + value + '</div>' +
+                    (sub ? '<div class="kpi-sub">' + sub + '</div>' : '') +
+                    (deltaLabel ? '<div class="kpi-delta" style="color:' + (deltaGood ? C.teal : C.rose) + '">' + deltaLabel + '</div>' : '') + '</div>';
+            }
+            html += '<div class="kpi-row">';
+            html += kpi('Revenue — ' + (m === 'UPTO' ? 'FY Total' : m), fmtINR(revVal) || '—', null,
+                revDelta !== null ? (revDelta >= 0 ? '▲ ' : '▼ ') + Math.abs(revDelta).toFixed(1) + '% vs ' + prevMo : (prevMo ? '—' : 'First month'), revDelta === null || revDelta >= 0, C.teal);
+            html += kpi('Expenses — ' + (m === 'UPTO' ? 'FY Total' : m), fmtINR(expVal) || '—', revVal ? ((expVal / revVal) * 100).toFixed(1) + '% of revenue' : null,
+                expDelta !== null ? (expDelta >= 0 ? '▲ ' : '▼ ') + Math.abs(expDelta).toFixed(1) + '% vs ' + prevMo : (prevMo ? '—' : 'First month'), expDelta === null || expDelta <= 0, C.amber);
+            html += kpi('Profit — ' + (m === 'UPTO' ? 'FY Total' : m), fmtINR(profitVal) || '—', profitVal >= 0 ? 'Profitable' : 'Loss-making',
+                profitDelta !== null ? (profitDelta >= 0 ? '▲ ' : '▼ ') + Math.abs(profitDelta).toFixed(0) + '% vs ' + prevMo : (prevMo ? '—' : 'First month'), profitDelta === null || profitDelta >= 0, profitVal >= 0 ? C.teal : C.rose);
+            html += kpi('Margin', margin !== null ? margin.toFixed(1) + '%' : '—', null, null, true, C.tealDeep);
+            html += '</div>';
+
+            // ---------------- TREND + DONUT ----------------
+            const trend = months.map(mo => ({ name: mo, Revenue: revFor(mo), Expenses: expFor(mo), Profit: profitFor(mo) }));
+            const donutData = expenseSecs.map(s => ({ name: s.name, value: subtotalFor(s, m) || 0 })).filter(d => d.value > 0);
+            const donutSum = donutData.reduce((a, b) => a + b.value, 0);
+
+            const trendChartSvg = groupedBarLineChart(trend, [{ key: 'Revenue', color: C.teal }, { key: 'Expenses', color: '#D8CBB0' }], { key: 'Profit', color: C.rose });
+            const trendLegend = '<div class="legend-row"><div class="legend-item"><span class="legend-dot" style="background:' + C.teal + '"></span>Revenue</div><div class="legend-item"><span class="legend-dot" style="background:#D8CBB0"></span>Expenses</div><div class="legend-item"><span class="legend-dot" style="background:' + C.rose + '"></span>Profit</div></div>';
+            CHART_CACHE['trend'] = { title: 'Revenue, Expenses & Profit — ' + state.unit, html: trendChartSvg + trendLegend };
+
+            const donutSvg = donutChart(donutData, PALETTE);
+            const donutLegend = donutSum > 0 ? '<div class="legend-grid">' + donutData.map((s, i) => '<div class="legend-item"><span class="legend-dot" style="background:' + PALETTE[i % PALETTE.length] + '"></span><span style="color:' + C.slate + '">' + shortSecName(s.name) + '</span><span class="legend-val">' + fmtINR(s.value) + ' · ' + ((s.value / donutSum) * 100).toFixed(0) + '%</span></div>').join('') + '</div>' : '';
+            CHART_CACHE['donut'] = { title: 'Expense Composition — ' + state.unit + ' · ' + (m === 'UPTO' ? 'FY Total' : m), html: donutSvg + donutLegend };
+
+            html += '<div class="grid2">';
+            html += '<div class="card">' + cardHead('Revenue, Expenses & Profit', 'Monthly trend · ' + state.unit, 'trend') + trendChartSvg + trendLegend + '</div>';
+            html += '<div class="card">' + cardHead('Expense Composition', (m === 'UPTO' ? 'FY Total' : m) + ' · ' + (fmtINR(expVal) || '—') + ' total', 'donut') + donutSvg + donutLegend + '</div>';
+            html += '</div>';
+
+            // ---------------- COST STRUCTURE OVER TIME ----------------
+            const compTrend = months.map(mo => { const o = { name: mo }; expenseSecs.forEach(s => o[s.name] = subtotalFor(s, mo) || 0); return o; });
+            const stackSvg = stackedBarChart(compTrend, expenseSecs.map((s, i) => ({ key: s.name, color: PALETTE[i % PALETTE.length] })));
+            const stackLegend = '<div class="legend-row">' + expenseSecs.map((s, i) => '<div class="legend-item"><span class="legend-dot" style="background:' + PALETTE[i % PALETTE.length] + '"></span>' + shortSecName(s.name) + '</div>').join('') + '</div>';
+            CHART_CACHE['stack'] = { title: 'Cost Structure Over Time — ' + state.unit, html: stackSvg + stackLegend };
+            html += '<div class="card" style="margin-bottom:16px;">' + cardHead('Cost Structure Over Time', 'Stacked monthly expense categories · ' + state.unit, 'stack') + stackSvg + stackLegend + '</div>';
+
+            // ---------------- STOCK + EMPLOYEE ----------------
+            const cogsSec = unit.sections.find(s => s.name === 'Cost of Materials Consumed');
+            const openingItem = findItem(cogsSec, /opening stock/i);
+            const closingItem = findItem(cogsSec, /closing stock/i);
+            const purchasedItem = findItem(cogsSec, /material purchased/i);
+            const empSec = unit.sections.find(s => s.name === 'Employee Benefits Expenses');
+
+            const hasStock = openingItem && closingItem;
+            const hasEmp = empSec && empSec.items.length;
+
+            if (hasStock || hasEmp) {
+                html += '<div class="grid2b">';
+                if (hasStock) {
+                    const stockTrend = months.map(mo => ({ name: mo, Opening: openingItem[mo] || 0, Closing: closingItem[mo] || 0, Purchased: purchasedItem ? (purchasedItem[mo] || 0) : 0 }));
+                    const stockSvg = groupedBarLineChart(stockTrend, [{ key: 'Opening', color: '#CBB98A' }, { key: 'Closing', color: C.amber }], purchasedItem ? { key: 'Purchased', color: C.tealDeep } : null);
+                    const stockLegend = '<div class="legend-row"><div class="legend-item"><span class="legend-dot" style="background:#CBB98A"></span>Opening</div><div class="legend-item"><span class="legend-dot" style="background:' + C.amber + '"></span>Closing</div>' + (purchasedItem ? '<div class="legend-item"><span class="legend-dot" style="background:' + C.tealDeep + '"></span>Purchased</div>' : '') + '</div>';
+                    CHART_CACHE['stock'] = { title: 'Inventory — Stock Movement — ' + state.unit, html: stockSvg + stockLegend };
+                    html += '<div class="card">' + cardHead('Inventory — Stock Movement', 'Opening vs. closing stock, ₹', 'stock') + stockSvg + stockLegend;
+                    const oc = openingItem[m], cc = closingItem[m];
+                    if (oc !== null && cc !== null) {
+                        html += '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;font-family:\'IBM Plex Mono\',monospace;color:' + C.slate + ';"><span>' + m + ': Opening ' + fmtINR(oc) + ' → Closing ' + fmtINR(cc) + '</span><span style="color:' + (cc >= oc ? C.teal : C.rose) + ';font-weight:600;">' + (cc >= oc ? '▲ ' : '▼ ') + fmtINR(Math.abs(cc - oc)) + '</span></div>';
+                    }
+                    html += '</div>';
+                }
+                if (hasEmp) {
+                    const empList = empSec.items.filter(it => it[m] !== null && it[m] !== undefined && it[m] > 0).map(it => ({ name: it.label, value: it[m] }));
+                    const incentiveTrend = months.map(mo => { let inc = 0, bon = 0; empSec.items.forEach(it => { const low = it.label.toLowerCase(); const v = it[mo] || 0; if (low.includes('incentive') || low.includes('director')) inc += v; else if (low.includes('bonus')) bon += v; }); return { name: mo, 'Incentive/Director': inc, Bonus: bon }; });
+                    const empBarSvg = empList.length ? horizontalBarChart(empList, C.teal, Math.min(empList.length, 8) * 25 + 16) : '<div style="font-size:12px;color:' + C.slate + ';padding:10px 0;">No employee cost entries for ' + m + '.</div>';
+                    const empTrendSvg = groupedBarLineChart(incentiveTrend, [{ key: 'Incentive/Director', color: C.amber }, { key: 'Bonus', color: '#D8CBB0' }], null, 120);
+                    const empLegend = '<div class="legend-row"><div class="legend-item"><span class="legend-dot" style="background:' + C.amber + '"></span>Incentive/Director</div><div class="legend-item"><span class="legend-dot" style="background:#D8CBB0"></span>Bonus</div></div>';
+                    CHART_CACHE['emp'] = { title: 'Employee Cost & Incentives — ' + state.unit + ' · ' + m, html: empBarSvg + '<div style="border-top:1px solid ' + C.line + ';margin-top:10px;padding-top:10px;">' + empTrendSvg + empLegend + '</div>' };
+                    html += '<div class="card">' + cardHead('Employee Cost & Incentives', m + ' breakdown · incentive/bonus trend below', 'emp') + empBarSvg;
+                    html += '<div style="border-top:1px solid ' + C.line + ';margin-top:10px;padding-top:10px;">' + empTrendSvg + empLegend + '</div></div>';
+                }
+                html += '</div>';
+            }
+
+            // ---------------- WATERFALL ----------------
+            const expenseVals = expenseSecs.map(s => ({ name: s.name, value: subtotalFor(s, m) }));
+            const sumExpenses = expenseVals.reduce((a, b) => a + (b.value || 0), 0);
+            const calcProfit = (revVal || 0) - sumExpenses;
+            const profitFlag = Math.abs((profitVal || 0) - calcProfit) > 1 && unit.topline.profit && unit.topline.profit[m] !== null && unit.topline.profit[m] !== undefined;
+            html += '<div class="waterfall-card"><div class="waterfall-title">Revenue → Expenses → Profit</div>';
+            html += '<div class="waterfall-sub">' + (m === 'UPTO' ? 'FY Total' : m) + ' · click any step to jump to its full breakdown</div>';
+            html += '<div class="waterfall-row">';
+            html += '<div class="wf-node rev" onclick="expandAndScroll(\'' + revSec.name.replace(/'/g, "\\'") + '\')"><div class="wf-label">Revenue</div><div class="wf-val">' + (fmtINR(revVal) || '—') + '</div></div>';
+            expenseVals.forEach(e => {
+                html += '<div class="wf-op">−</div>';
+                html += '<div class="wf-node" onclick="expandAndScroll(\'' + e.name.replace(/'/g, "\\'") + '\')"><div class="wf-label">' + shortSecName(e.name) + '</div><div class="wf-val">' + (fmtINR(e.value) || '—') + '</div></div>';
+            });
+            html += '<div class="wf-op">=</div>';
+            html += '<div class="wf-node profit"><div class="wf-label">Profit</div><div class="wf-val">' + (fmtINR(profitVal) || '—') + '</div>' + (profitFlag ? '<div class="wf-flag">⚠ differs from sheet total</div>' : '') + '</div>';
+            html += '</div></div>';
+
+            // ---------------- DETAILED DRILL-DOWN (unchanged detail, collapsed) ----------------
+            html += '<div class="detail-heading">Full Detail by Section</div><div class="detail-sub">Every line item exactly as entered — click a section to expand.</div>';
+            unit.sections.forEach(sec => {
+                const isOpen = !!(state.expanded[state.unit] && state.expanded[state.unit][sec.name]);
+                const st = sec.subtotal;
+                const stVal = st ? st[m] : null;
+                const pctOfRev = (st && revVal) ? (stVal / revVal) * 100 : null;
+                html += '<div class="section-card" id="section-' + cssSafe(sec.name) + '">';
+                html += '<div class="section-head" onclick="toggleSection(\'' + sec.name.replace(/'/g, "\\'") + '\')">';
+                html += '<div class="section-head-left"><span class="chevron' + (isOpen ? ' open' : '') + '">▶</span><span class="section-title">' + sec.name + '</span></div>';
+                html += '<div class="section-head-right">' + (pctOfRev !== null ? '<span class="section-pct">' + pctOfRev.toFixed(1) + '% of revenue</span>' : '') + '<span class="section-subtotal">' + (fmtINR(stVal) || '—') + '</span></div>';
+                html += '</div>';
+                html += '<div class="section-body' + (isOpen ? ' open' : '') + '">';
+                html += '<table><thead><tr><th>Line Item</th>' + months.map(mo => '<th>' + mo + '</th>').join('') + '<th>FY Total</th></tr></thead><tbody>';
+                sec.items.forEach(it => { html += '<tr><td>' + it.label + '</td>' + months.map(mo => cell(it[mo])).join('') + cell(it.UPTO) + '</tr>'; });
+                html += '</tbody></table>';
+                const labels = sec.items.map(it => it.label).join(' + ');
+                html += '<div class="formula-line">' + labels + ' &nbsp;=&nbsp; <b>' + sec.name + (st ? ' — ' + (fmtINR(stVal) || '—') : '') + '</b></div>';
+                if (sec !== revSec && sec.name !== 'Changes in Inventories') {
+                    html += '<div class="flows-into" onclick="expandAndScroll(null)">↳ flows into Total Expenses below' + (pctOfRev !== null ? ' (' + pctOfRev.toFixed(1) + '% of revenue)' : '') + '</div>';
+                }
+                if (sec.name === 'Changes in Inventories') {
+                    html += '<div class="flows-into" style="color:' + C.slate + ';cursor:default;">ⓘ Memo section only — already netted into "Cost of Materials Consumed" above.</div>';
+                }
+                html += '</div></div>';
+            });
+
+            html += '<div class="section-card" id="totals-card"><div class="section-head" style="cursor:default;"><div class="section-head-left"><span class="section-title">Total Expenses = ' + expenseSecs.map(s => shortSecName(s.name)).join(' + ') + '</span></div>';
+            html += '<div class="section-subtotal">' + (fmtINR(expVal) || '—') + '</div></div></div>';
+
+            html += '<div class="footer-note">Parses each workbook directly in your browser — files never leave your computer. Click a unit or month tab to switch views, click ⤢ on any chart to view it full-page, or click any waterfall step or section to see its full breakdown.</div>';
+
+            if (state.modalOpen && CHART_CACHE[state.modalOpen]) {
+                const mc = CHART_CACHE[state.modalOpen];
+                html += '<div class="modal-overlay" onclick="if(event.target===this) closeChartModal()">';
+                html += '<div class="modal-card"><div class="modal-head"><div class="modal-title">' + mc.title + '</div><button class="modal-close" onclick="closeChartModal()">✕</button></div>';
+                html += '<div class="modal-body">' + mc.html + '</div></div></div>';
+            }
+
+            if (state.manualOpen) {
+                html += '<div class="modal-overlay" onclick="if(event.target===this) closeManual()">';
+                html += '<div class="modal-card manual-card"><div class="modal-head"><div class="modal-title">User Manual — Figures & Calculations</div><button class="modal-close" onclick="closeManual()">✕</button></div>';
+                html += '<div class="manual-body">' + MANUAL_HTML + '</div></div></div>';
+            }
+
+            document.getElementById('app').innerHTML = html;
+        }
+        render();
+    </script>
+</body>
+
+</html>
